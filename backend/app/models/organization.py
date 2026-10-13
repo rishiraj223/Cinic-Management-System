@@ -12,6 +12,9 @@ class Organization(Base):
     slug = Column(String(255), unique=True, nullable=False, index=True)
     type = Column(String(50), nullable=False, index=True)  # 'clinic', 'hospital', 'diagnostic_center'
     address = Column(String(500), nullable=True)
+    city = Column(String(100), nullable=True)
+    state = Column(String(100), nullable=True)
+    postal_code = Column(String(20), nullable=True)
     phone = Column(String(50), nullable=True)
     email = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False, index=True)
@@ -21,6 +24,9 @@ class Organization(Base):
     # Relationships
     members = relationship("OrganizationMember", back_populates="organization", cascade="all, delete-orphan")
     settings = relationship("OrganizationSetting", back_populates="organization", uselist=False, cascade="all, delete-orphan")
+    departments = relationship("Department", back_populates="organization", cascade="all, delete-orphan")
+    service_categories = relationship("ServiceCategory", back_populates="organization", cascade="all, delete-orphan")
+    doctors = relationship("DoctorProfile", back_populates="organization", cascade="all, delete-orphan")
 
 
 class OrganizationMember(Base):

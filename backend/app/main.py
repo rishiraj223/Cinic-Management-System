@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.database import init_db
-from app.routers import health_router, organizations_router, users_router
+from app.routers import health_router, organizations_router, provider_router, users_router
 
 # Configure logging
 logging.basicConfig(
@@ -66,3 +66,4 @@ async def root():
 app.include_router(health_router)
 app.include_router(users_router)
 app.include_router(organizations_router)
+app.include_router(provider_router)

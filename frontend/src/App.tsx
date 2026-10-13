@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { Navbar } from './components/common/Navbar';
-import { CreateOrgModal } from './components/organization/CreateOrgModal';
+import { ProviderPortalPage } from './pages/ProviderPortalPage';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { api } from './services/api';
 import type { OrganizationWithRole } from './types/organization';
+import { ArrowLeft } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const { user, loading } = useAuth();
@@ -17,7 +16,7 @@ const MainApp: React.FC = () => {
 
   const [organizations, setOrganizations] = useState<OrganizationWithRole[]>([]);
   const [currentOrg, setCurrentOrg] = useState<OrganizationWithRole | null>(null);
-  const [isCreateOrgOpen, setIsCreateOrgOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [backendHealth, setBackendHealth] = useState<any>(null);
 
   const fetchOrganizations = async () => {
@@ -26,6 +25,10 @@ const MainApp: React.FC = () => {
       setOrganizations(orgs);
       if (orgs.length > 0 && !currentOrg) {
         setCurrentOrg(orgs[0]);
+      } else if (currentOrg) {
+        // Keep current selected org up to date
+        const refreshed = orgs.find((o) => o.id === currentOrg.id);
+        if (refreshed) setCurrentOrg(refreshed);
       }
     } catch (err) {
       console.warn('Could not fetch organizations:', err);
@@ -73,46 +76,43 @@ const MainApp: React.FC = () => {
   }
 
   const handleOrgCreated = (newOrg: OrganizationWithRole) => {
-    setOrganizations((prev) => [newOrg, ...prev]);
+    setOrganizations((prev) => [newOrg, ...prev.filter((o) => o.id !== newOrg.id)]);
     setCurrentOrg(newOrg);
+    setIsOnboardingOpen(false);
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">
-      <Navbar
-        currentOrg={currentOrg}
-        organizations={organizations}
-        onSelectOrg={setCurrentOrg}
-        onOpenCreateOrg={() => setIsCreateOrgOpen(true)}
-        currentPage={currentPage}
-        onNavigate={setCurrentPage}
-        backendHealthy={backendHealth?.status === 'healthy'}
-      />
+  if (currentPage === 'profile') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => setCurrentPage('dashboard')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-teal-700 transition"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Healthcare Dashboard
+          </button>
+          <span className="text-xs font-mono text-slate-400">HealthCore SaaS &bull; Account Center</span>
+        </header>
 
-      <main className="flex-1">
-        {currentPage === 'dashboard' ? (
-          <DashboardPage
-            currentOrg={currentOrg}
-            organizations={organizations}
-            onSelectOrg={setCurrentOrg}
-            onOpenCreateOrg={() => setIsCreateOrgOpen(true)}
-            backendHealth={backendHealth}
-          />
-        ) : (
+        <main className="flex-1 p-6">
           <ProfilePage />
-        )}
-      </main>
+        </main>
+      </div>
+    );
+  }
 
-      <CreateOrgModal
-        isOpen={isCreateOrgOpen}
-        onClose={() => setIsCreateOrgOpen(false)}
-        onSuccess={handleOrgCreated}
-      />
-
-      <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-400 bg-white">
-        <p>HealthCore SaaS &bull; Phase 1 Foundation &bull; React + FastAPI + Supabase PostgreSQL</p>
-      </footer>
-    </div>
+  return (
+    <ProviderPortalPage
+      currentOrg={currentOrg}
+      organizations={organizations}
+      onSelectOrg={setCurrentOrg}
+      onOpenOnboarding={() => setIsOnboardingOpen(true)}
+      isOnboardingOpen={isOnboardingOpen}
+      onCloseOnboarding={() => setIsOnboardingOpen(false)}
+      onOrgCreated={handleOrgCreated}
+      onNavigateToAccount={() => setCurrentPage('profile')}
+      backendHealthy={backendHealth?.status === 'healthy'}
+    />
   );
 };
 

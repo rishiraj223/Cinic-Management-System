@@ -7,6 +7,10 @@ from app.dependencies import get_current_user
 from app.models.user import Profile
 from app.schemas.organization import (
     OrganizationCreate,
+    OrganizationOnboardingCreate,
+    OrganizationSettingsRead,
+    OrganizationSettingsUpdate,
+    OrganizationUpdate,
     OrganizationWithRoleRead,
 )
 from app.services.organization_service import organization_service
@@ -47,6 +51,24 @@ async def create_organization(
     )
 
 
+@router.post("/onboard", response_model=OrganizationWithRoleRead, status_code=status.HTTP_201_CREATED)
+async def onboard_organization(
+    onboarding_in: OrganizationOnboardingCreate,
+    current_user: Annotated[Profile, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """
+    Comprehensive provider onboarding endpoint:
+    Creates organization, sets up owner membership, and provisions type-specific resources
+    (doctor profile for clinics, default departments for hospitals, default test categories for labs).
+    """
+    return await organization_service.onboard_organization(
+        db=db,
+        user_id=current_user.id,
+        onboarding_in=onboarding_in,
+    )
+
+
 @router.get("/{organization_id}", response_model=OrganizationWithRoleRead)
 async def get_organization(
     organization_id: str,
@@ -61,5 +83,45 @@ async def get_organization(
         db=db,
         organization_id=organization_id,
         user_id=current_user.id,
+        is_platform_admin=current_user.is_platform_admin,
+    )
+
+
+@router.patch("/{organization_id}", response_model=OrganizationWithRoleRead)
+async def update_organization(
+    organization_id: str,
+    org_update: OrganizationUpdate,
+    current_user: Annotated[Profile, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """
+    Updates organization profile details (address, city, state, postal code, phone, email).
+    Only permitted for organization_owner or platform_admin.
+    """
+    return await organization_service.update_organization(
+        db=db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+        org_update=org_update,
+        is_platform_admin=current_user.is_platform_admin,
+    )
+
+
+@router.patch("/{organization_id}/settings", response_model=OrganizationSettingsRead)
+async def update_organization_settings(
+    organization_id: str,
+    settings_update: OrganizationSettingsUpdate,
+    current_user: Annotated[Profile, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """
+    Updates operational settings (timezone, currency, operating hours, notifications).
+    Only permitted for organization_owner or platform_admin.
+    """
+    return await organization_service.update_organization_settings(
+        db=db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+        settings_update=settings_update,
         is_platform_admin=current_user.is_platform_admin,
     )

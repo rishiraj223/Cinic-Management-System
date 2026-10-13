@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 import httpx
 import jwt
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -32,7 +32,6 @@ class AuthService:
         # 1. Test Mode Support (for fast automated test suites)
         if self.settings.ENVIRONMENT == "test" or getattr(self.settings, "TEST_MODE", False):
             try:
-                # In test mode, support decoding with a standard test secret or unverified claims if test payload
                 secret = self.settings.SUPABASE_JWT_SECRET or "test-secret-key-at-least-32-chars-long"
                 payload = jwt.decode(
                     token,
@@ -42,7 +41,6 @@ class AuthService:
                 )
                 return payload
             except jwt.PyJWTError:
-                # If test secret fails, attempt unverified decode for mock payloads in unit tests
                 try:
                     payload = jwt.decode(token, options={"verify_signature": False})
                     if "sub" in payload:
@@ -57,7 +55,7 @@ class AuthService:
                     token,
                     self.settings.SUPABASE_JWT_SECRET,
                     algorithms=["HS256"],
-                    options={"verify_aud": False},  # Supabase aud can be 'authenticated'
+                    options={"verify_aud": False},
                 )
                 return payload
             except jwt.ExpiredSignatureError:
@@ -68,7 +66,6 @@ class AuthService:
                 )
             except jwt.InvalidTokenError as e:
                 logger.warning(f"Local JWT verification failed: {e}")
-                # Fall through to Supabase auth API verification if available
 
         # 3. Supabase Auth API Endpoint Verification
         if self.settings.is_supabase_configured and self.settings.SUPABASE_URL != "https://your-project-id.supabase.co":
@@ -103,7 +100,6 @@ class AuthService:
         # 4. Fallback for Local Development Mode (unconfigured demo environment)
         if self.settings.ENVIRONMENT == "development":
             try:
-                # In development mode without remote Supabase connected, accept token if valid JWT structure
                 payload = jwt.decode(token, options={"verify_signature": False})
                 if "sub" in payload:
                     return payload
@@ -124,22 +120,55 @@ class AuthService:
         full_name: Optional[str] = None,
     ) -> Profile:
         """
-        Retrieves the profile for the given user ID. If not found in the database,
-        creates one (simulating the database trigger for environments where triggers haven't fired).
+        Retrieves the profile for the given user ID.
+        If a profile with this ID is not found, checks if an invited placeholder profile
+        was created for this email address and links it to this authenticated user ID.
         """
+        normalized_email = email.strip().lower()
         result = await db.execute(select(Profile).where(Profile.id == user_id))
         profile = result.scalar_one_or_none()
 
-        if not profile:
-            profile = Profile(
-                id=user_id,
-                email=email,
-                full_name=full_name or email.split("@")[0],
-                is_platform_admin=False,
+        if profile:
+            return profile
+
+        # Check if an invited placeholder profile exists for this email
+        res_email = await db.execute(select(Profile).where(Profile.email == normalized_email))
+        placeholder = res_email.scalar_one_or_none()
+
+        if placeholder:
+            old_id = placeholder.id
+            placeholder.id = user_id
+            if full_name:
+                placeholder.full_name = full_name
+
+            # Relink memberships & doctor profiles from old placeholder ID to the real auth user ID
+            from app.models.organization import OrganizationMember
+            from app.models.provider import DoctorProfile
+
+            await db.execute(
+                update(OrganizationMember)
+                .where(OrganizationMember.user_id == old_id)
+                .values(user_id=user_id)
             )
-            db.add(profile)
+            await db.execute(
+                update(DoctorProfile)
+                .where(DoctorProfile.user_id == old_id)
+                .values(user_id=user_id)
+            )
             await db.commit()
-            await db.refresh(profile)
+            await db.refresh(placeholder)
+            return placeholder
+
+        # If no profile or placeholder exists, create a new one
+        profile = Profile(
+            id=user_id,
+            email=normalized_email,
+            full_name=full_name or normalized_email.split("@")[0].title(),
+            is_platform_admin=False,
+        )
+        db.add(profile)
+        await db.commit()
+        await db.refresh(profile)
 
         return profile
 
