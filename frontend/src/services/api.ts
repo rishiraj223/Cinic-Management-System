@@ -21,12 +21,17 @@ class ApiService {
     };
 
     try {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.access_token) {
-        headers['Authorization'] = `Bearer ${data.session.access_token}`;
+      const localToken = localStorage.getItem('healthcore_auth_token');
+      if (localToken) {
+        headers['Authorization'] = `Bearer ${localToken}`;
+      } else {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.access_token) {
+          headers['Authorization'] = `Bearer ${data.session.access_token}`;
+        }
       }
     } catch (e) {
-      console.warn('Could not retrieve Supabase session token:', e);
+      console.warn('Could not retrieve session token:', e);
     }
 
     return headers;
@@ -64,6 +69,33 @@ class ApiService {
       return {} as T;
     }
 
+    return response.json();
+  }
+
+  // Direct Authentication & Fast Access
+  async login(credentials: { email: string; password: string }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || 'Login failed');
+    }
+    return response.json();
+  }
+
+  async register(userData: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || 'Registration failed');
+    }
     return response.json();
   }
 

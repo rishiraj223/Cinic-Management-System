@@ -42,26 +42,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // 1. Initial Session Check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
+    // 1. Initial Session Check: Check local storage token first
+    const savedToken = localStorage.getItem('healthcore_auth_token');
+    const savedUser = localStorage.getItem('healthcore_user');
+
+    if (savedToken && savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setSession({ access_token: savedToken } as any);
         fetchUserProfile().finally(() => setLoading(false));
-      } else {
+      } catch (e) {
+        localStorage.removeItem('healthcore_auth_token');
+        localStorage.removeItem('healthcore_user');
+      }
+    }
+
+    // 2. Also check Supabase Session
+    supabase.auth.getSession().then(({ data: { session: supaSession } }) => {
+      if (supaSession?.user) {
+        setSession(supaSession);
+        setUser(supaSession.user);
+        fetchUserProfile().finally(() => setLoading(false));
+      } else if (!savedToken) {
         setLoading(false);
       }
     });
 
-    // 2. Auth State Change Listener
+    // 3. Auth State Change Listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
+    } = supabase.auth.onAuthStateChange(async (_event, supaSession) => {
+      if (supaSession?.user) {
+        setSession(supaSession);
+        setUser(supaSession.user);
         await fetchUserProfile();
-      } else {
+      } else if (!localStorage.getItem('healthcore_auth_token')) {
+        setUser(null);
+        setSession(null);
         setProfile(null);
         setMemberships([]);
       }
@@ -74,17 +92,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) return { error };
-    setSession(data.session);
-    setUser(data.user);
-    if (data.session) {
-      await fetchUserProfile();
+    // 1. Try Direct Backend Login First (Instant, never blocks on email confirmation)
+    try {
+      const res = await api.login({ email, password });
+      if (res?.access_token && res?.user) {
+        localStorage.setItem('healthcore_auth_token', res.access_token);
+        localStorage.setItem('healthcore_user', JSON.stringify(res.user));
+        setSession({ access_token: res.access_token } as any);
+        setUser(res.user);
+        await fetchUserProfile();
+        return { error: null };
+      }
+    } catch (directErr) {
+      console.warn('Direct backend login failed, trying Supabase auth:', directErr);
     }
-    return { error: null };
+
+    // 2. Fallback to Supabase Auth
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) return { error };
+      setSession(data.session);
+      setUser(data.user);
+      if (data.session) {
+        await fetchUserProfile();
+      }
+      return { error: null };
+    } catch (supaErr: any) {
+      return { error: supaErr };
+    }
   };
 
   const signUp = async (
@@ -93,27 +131,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fullName: string,
     metadata?: Record<string, any>
   ) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          ...(metadata || {}),
-        },
-      },
-    });
-    if (error) return { error };
-    if (data.session) {
-      setSession(data.session);
-      setUser(data.user);
-      await fetchUserProfile();
+    // 1. Try Direct Backend Registration (Instant account setup and immediate workspace opening)
+    try {
+      const res = await api.register({
+        email,
+        password,
+        full_name: fullName,
+        ...(metadata || {}),
+      });
+      if (res?.access_token && res?.user) {
+        localStorage.setItem('healthcore_auth_token', res.access_token);
+        localStorage.setItem('healthcore_user', JSON.stringify(res.user));
+        setSession({ access_token: res.access_token } as any);
+        setUser(res.user);
+        await fetchUserProfile();
+        return { error: null, user: res.user };
+      }
+    } catch (backendErr) {
+      console.warn('Direct registration failed, trying Supabase fallback:', backendErr);
     }
-    return { error: null, user: data.user };
+
+    // 2. Fallback to Supabase
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            ...(metadata || {}),
+          },
+        },
+      });
+      if (error) return { error };
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.user);
+        await fetchUserProfile();
+      }
+      return { error: null, user: data.user };
+    } catch (supaErr: any) {
+      return { error: supaErr };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('healthcore_auth_token');
+    localStorage.removeItem('healthcore_user');
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // ignore
+    }
     setUser(null);
     setSession(null);
     setProfile(null);

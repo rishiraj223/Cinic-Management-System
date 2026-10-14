@@ -16,6 +16,7 @@ from app.routers import (
     patient_portal_router,
     provider_router,
     users_router,
+    auth_router,
 )
 
 # Configure logging
@@ -82,3 +83,4 @@ app.include_router(lab_router)
 app.include_router(hospital_router)
 app.include_router(patient_portal_router)
 app.include_router(ambulance_router)
+app.include_router(auth_router)

@@ -100,12 +100,17 @@ class PatientApiService {
       'Content-Type': 'application/json',
     };
     try {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.access_token) {
-        headers['Authorization'] = `Bearer ${data.session.access_token}`;
+      const localToken = localStorage.getItem('healthcore_auth_token');
+      if (localToken) {
+        headers['Authorization'] = `Bearer ${localToken}`;
+      } else {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.access_token) {
+          headers['Authorization'] = `Bearer ${data.session.access_token}`;
+        }
       }
     } catch (e) {
-      console.warn('Could not retrieve Supabase session token:', e);
+      console.warn('Could not retrieve session token:', e);
     }
     return headers;
   }

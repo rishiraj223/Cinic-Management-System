@@ -21,12 +21,17 @@ class ClinicApiService {
     };
 
     try {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.access_token) {
-        headers['Authorization'] = `Bearer ${data.session.access_token}`;
+      const localToken = localStorage.getItem('healthcore_auth_token');
+      if (localToken) {
+        headers['Authorization'] = `Bearer ${localToken}`;
+      } else {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.access_token) {
+          headers['Authorization'] = `Bearer ${data.session.access_token}`;
+        }
       }
     } catch (err) {
-      console.warn('Could not read session token from Supabase client:', err);
+      console.warn('Could not read session token:', err);
     }
 
     return headers;
