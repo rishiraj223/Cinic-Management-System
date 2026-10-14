@@ -43,6 +43,7 @@ class PatientRead(BaseModel):
 
     id: str
     organization_id: str
+    user_id: Optional[str] = None
     patient_code: str
     full_name: str
     date_of_birth: Optional[date] = None

@@ -4,6 +4,7 @@ from app.services.provider_service import provider_service
 from app.services.clinic_service import clinic_service
 from app.services.lab_service import lab_service
 from app.services.hospital_service import hospital_service
+from app.services.patient_portal_service import patient_portal_service
 
 __all__ = [
     "auth_service",
@@ -12,5 +13,6 @@ __all__ = [
     "clinic_service",
     "lab_service",
     "hospital_service",
+    "patient_portal_service",
 ]
 

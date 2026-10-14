@@ -4,6 +4,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProviderPortalPage } from './pages/ProviderPortalPage';
+import { PatientPortalPage } from './pages/PatientPortalPage';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { api } from './services/api';
 import type { OrganizationWithRole } from './types/organization';
@@ -13,6 +14,7 @@ const MainApp: React.FC = () => {
   const { user, loading } = useAuth();
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [currentPage, setCurrentPage] = useState<'dashboard' | 'profile'>('dashboard');
+  const [portalMode, setPortalMode] = useState<'patient' | 'provider'>('patient');
 
   const [organizations, setOrganizations] = useState<OrganizationWithRole[]>([]);
   const [currentOrg, setCurrentOrg] = useState<OrganizationWithRole | null>(null);
@@ -101,18 +103,39 @@ const MainApp: React.FC = () => {
     );
   }
 
+  if (portalMode === 'patient') {
+    return (
+      <PatientPortalPage
+        onNavigateToStaffPortal={() => setPortalMode('provider')}
+      />
+    );
+  }
+
   return (
-    <ProviderPortalPage
-      currentOrg={currentOrg}
-      organizations={organizations}
-      onSelectOrg={setCurrentOrg}
-      onOpenOnboarding={() => setIsOnboardingOpen(true)}
-      isOnboardingOpen={isOnboardingOpen}
-      onCloseOnboarding={() => setIsOnboardingOpen(false)}
-      onOrgCreated={handleOrgCreated}
-      onNavigateToAccount={() => setCurrentPage('profile')}
-      backendHealthy={backendHealth?.status === 'healthy'}
-    />
+    <div className="relative">
+      {/* Switcher back to patient portal */}
+      <div className="bg-slate-900 text-white text-xs px-4 py-1.5 flex items-center justify-between">
+        <span className="font-semibold text-teal-400">Healthcare Staff & Provider Mode</span>
+        <button
+          onClick={() => setPortalMode('patient')}
+          className="font-bold underline text-white hover:text-teal-300"
+        >
+          &larr; Switch to Patient Portal
+        </button>
+      </div>
+
+      <ProviderPortalPage
+        currentOrg={currentOrg}
+        organizations={organizations}
+        onSelectOrg={setCurrentOrg}
+        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        isOnboardingOpen={isOnboardingOpen}
+        onCloseOnboarding={() => setIsOnboardingOpen(false)}
+        onOrgCreated={handleOrgCreated}
+        onNavigateToAccount={() => setCurrentPage('profile')}
+        backendHealthy={backendHealth?.status === 'healthy'}
+      />
+    </div>
   );
 };
 

@@ -5,6 +5,7 @@ from app.routers.provider import router as provider_router
 from app.routers.clinic import router as clinic_router
 from app.routers.lab import router as lab_router
 from app.routers.hospital import router as hospital_router
+from app.routers.patient_portal import router as patient_portal_router
 
 __all__ = [
     "health_router",
@@ -14,5 +15,6 @@ __all__ = [
     "clinic_router",
     "lab_router",
     "hospital_router",
+    "patient_portal_router",
 ]
 

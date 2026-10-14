@@ -15,7 +15,8 @@ class Patient(Base):
     __tablename__ = "patients"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True, index=True)
+    user_id = Column(String(36), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True, index=True)
     created_by = Column(String(36), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True)
     patient_code = Column(String(50), nullable=False)
     full_name = Column(String(255), nullable=False, index=True)
@@ -38,6 +39,7 @@ class Patient(Base):
 
     # Relationships
     organization = relationship("Organization")
+    user = relationship("Profile", foreign_keys=[user_id])
     creator = relationship("Profile", foreign_keys=[created_by])
     appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
     visits = relationship("PatientVisit", back_populates="patient", cascade="all, delete-orphan")

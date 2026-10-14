@@ -12,6 +12,7 @@ from app.routers import (
     hospital_router,
     lab_router,
     organizations_router,
+    patient_portal_router,
     provider_router,
     users_router,
 )
@@ -78,3 +79,4 @@ app.include_router(provider_router)
 app.include_router(clinic_router)
 app.include_router(lab_router)
 app.include_router(hospital_router)
+app.include_router(patient_portal_router)
