@@ -20,6 +20,8 @@ import { PrescriptionManager } from '../components/clinic/PrescriptionManager';
 import { BillingManager } from '../components/clinic/BillingManager';
 import { FollowUpManager } from '../components/clinic/FollowUpManager';
 import { ClinicReportsView } from '../components/clinic/ClinicReportsView';
+import { LabManagementView } from '../components/lab/LabManagementView';
+import { HospitalOperationsView } from '../components/hospital/HospitalOperationsView';
 import { api } from '../services/api';
 import type {
   OrganizationWithRole,
@@ -237,6 +239,12 @@ export const ProviderPortalPage: React.FC<ProviderPortalPageProps> = ({
 
       case 'reports':
         return <ClinicReportsView orgId={currentOrg.id} />;
+
+      case 'lab-management':
+        return <LabManagementView orgId={currentOrg.id} />;
+
+      case 'hospital-operations':
+        return <HospitalOperationsView orgId={currentOrg.id} />;
 
       default:
         return null;

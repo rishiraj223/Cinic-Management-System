@@ -16,6 +16,16 @@ from app.models.clinic import (
     FollowUp,
     AuditLog,
 )
+from app.models.lab import (
+    LabTest,
+    LabOrder,
+    LabOrderItem,
+    LabSample,
+    LabResult,
+    LabResultHistory,
+    DiagnosticReport,
+    ReportDeliveryEvent,
+)
 
 __all__ = [
     "Profile",
@@ -39,4 +49,12 @@ __all__ = [
     "Payment",
     "FollowUp",
     "AuditLog",
+    "LabTest",
+    "LabOrder",
+    "LabOrderItem",
+    "LabSample",
+    "LabResult",
+    "LabResultHistory",
+    "DiagnosticReport",
+    "ReportDeliveryEvent",
 ]

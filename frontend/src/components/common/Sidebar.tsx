@@ -29,6 +29,8 @@ export type ProviderActiveView =
   | 'billing'
   | 'followups'
   | 'reports'
+  | 'lab-management'
+  | 'hospital-operations'
   | 'placeholder-appointments'
   | 'placeholder-patients'
   | 'placeholder-prescriptions'
@@ -298,42 +300,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </>
             )}
 
-            {orgType === 'diagnostic_center' && (
-              <>
-                <button
-                  onClick={() => handleNav('placeholder-lab-orders')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition ${
-                    activeView === 'placeholder-lab-orders'
-                      ? 'bg-slate-100 text-slate-900 font-medium'
-                      : 'text-slate-500 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <TestTube2 className="w-4 h-4 text-slate-400" />
-                    Test Catalogue & Orders
-                  </span>
-                  <span className="text-[9px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-medium">
-                    Phase 4
-                  </span>
-                </button>
+            {orgType === 'hospital' && (
+              <button
+                onClick={() => handleNav('hospital-operations')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                  activeView === 'hospital-operations'
+                    ? 'bg-indigo-50 text-indigo-900 font-bold'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Building className="w-4 h-4 text-indigo-600 shrink-0" />
+                Hospital Operations
+              </button>
+            )}
 
-                <button
-                  onClick={() => handleNav('placeholder-sample-tracking')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition ${
-                    activeView === 'placeholder-sample-tracking'
-                      ? 'bg-slate-100 text-slate-900 font-medium'
-                      : 'text-slate-500 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <ClipboardList className="w-4 h-4 text-slate-400" />
-                    Sample Tracking & Reports
-                  </span>
-                  <span className="text-[9px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-medium">
-                    Phase 4
-                  </span>
-                </button>
-              </>
+            {orgType === 'diagnostic_center' && (
+              <button
+                onClick={() => handleNav('lab-management')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                  activeView === 'lab-management'
+                    ? 'bg-indigo-50 text-indigo-900 font-bold'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <TestTube2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                Laboratory & Diagnostics
+              </button>
             )}
           </div>
         </div>
