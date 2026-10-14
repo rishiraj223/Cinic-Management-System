@@ -12,6 +12,7 @@ import {
   CreditCard,
   TestTube2,
   Sparkles,
+  Truck,
 } from 'lucide-react';
 import type { OrganizationWithRole } from '../../types/organization';
 
@@ -31,6 +32,7 @@ export type ProviderActiveView =
   | 'reports'
   | 'lab-management'
   | 'hospital-operations'
+  | 'ambulance-fleet'
   | 'placeholder-appointments'
   | 'placeholder-patients'
   | 'placeholder-prescriptions'
@@ -301,17 +303,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
 
             {orgType === 'hospital' && (
-              <button
-                onClick={() => handleNav('hospital-operations')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                  activeView === 'hospital-operations'
-                    ? 'bg-indigo-50 text-indigo-900 font-bold'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <Building className="w-4 h-4 text-indigo-600 shrink-0" />
-                Hospital Operations
-              </button>
+              <>
+                <button
+                  onClick={() => handleNav('hospital-operations')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'hospital-operations'
+                      ? 'bg-indigo-50 text-indigo-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <Building className="w-4 h-4 text-indigo-600 shrink-0" />
+                  Hospital Operations
+                </button>
+
+                <button
+                  onClick={() => handleNav('ambulance-fleet')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'ambulance-fleet'
+                      ? 'bg-rose-50 text-rose-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <Truck className="w-4 h-4 text-rose-600 shrink-0" />
+                  Ambulance Dispatch Fleet
+                </button>
+              </>
             )}
 
             {orgType === 'diagnostic_center' && (

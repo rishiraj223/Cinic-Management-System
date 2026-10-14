@@ -20,14 +20,18 @@ import {
   Phone,
   AlertCircle,
   ArrowRight,
+  Truck,
 } from 'lucide-react';
+import { EmergencyAmbulanceView } from '../components/ambulance/EmergencyAmbulanceView';
 
 interface PatientPortalPageProps {
   onNavigateToStaffPortal?: () => void;
 }
 
 export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({ onNavigateToStaffPortal }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'search' | 'appointments' | 'profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState<
+    'dashboard' | 'search' | 'appointments' | 'profile' | 'ambulance'
+  >('dashboard');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -261,6 +265,7 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({ onNavigate
             { id: 'search', label: 'Find Care & Book Slots', icon: Search },
             { id: 'appointments', label: 'My Bookings', icon: Clock },
             { id: 'profile', label: 'Medical Profile', icon: User },
+            { id: 'ambulance', label: 'Emergency Ambulance', icon: Truck },
           ].map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -1005,6 +1010,9 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({ onNavigate
             </div>
           </div>
         )}
+
+        {/* ─── TAB 5: EMERGENCY AMBULANCE ─── */}
+        {!loading && activeTab === 'ambulance' && <EmergencyAmbulanceView />}
       </main>
     </div>
   );

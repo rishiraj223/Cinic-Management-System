@@ -22,6 +22,7 @@ import { FollowUpManager } from '../components/clinic/FollowUpManager';
 import { ClinicReportsView } from '../components/clinic/ClinicReportsView';
 import { LabManagementView } from '../components/lab/LabManagementView';
 import { HospitalOperationsView } from '../components/hospital/HospitalOperationsView';
+import { AmbulanceFleetManager } from '../components/ambulance/AmbulanceFleetManager';
 import { api } from '../services/api';
 import type {
   OrganizationWithRole,
@@ -245,6 +246,9 @@ export const ProviderPortalPage: React.FC<ProviderPortalPageProps> = ({
 
       case 'hospital-operations':
         return <HospitalOperationsView orgId={currentOrg.id} />;
+
+      case 'ambulance-fleet':
+        return <AmbulanceFleetManager orgId={currentOrg.id} />;
 
       default:
         return null;

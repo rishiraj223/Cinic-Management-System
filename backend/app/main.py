@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.database import init_db
 from app.routers import (
+    ambulance_router,
     clinic_router,
     health_router,
     hospital_router,
@@ -80,3 +81,4 @@ app.include_router(clinic_router)
 app.include_router(lab_router)
 app.include_router(hospital_router)
 app.include_router(patient_portal_router)
+app.include_router(ambulance_router)

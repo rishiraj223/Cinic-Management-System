@@ -26,6 +26,7 @@ from app.models.lab import (
     DiagnosticReport,
     ReportDeliveryEvent,
 )
+from app.models.ambulance import Ambulance, AmbulanceRequest
 
 __all__ = [
     "Profile",
@@ -57,4 +58,6 @@ __all__ = [
     "LabResultHistory",
     "DiagnosticReport",
     "ReportDeliveryEvent",
+    "Ambulance",
+    "AmbulanceRequest",
 ]

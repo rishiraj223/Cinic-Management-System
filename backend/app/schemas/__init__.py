@@ -90,6 +90,15 @@ from app.schemas.lab import (
     ReportDeliveryRead,
     LabDashboardSummary,
 )
+from app.schemas.ambulance import (
+    AmbulanceCreate,
+    AmbulanceUpdate,
+    AmbulanceRead,
+    AmbulanceRequestCreate,
+    AmbulanceStatusUpdate,
+    AmbulanceSimulatedTracking,
+    AmbulanceRequestRead,
+)
 
 __all__ = [
     "ProfileBase",
@@ -174,4 +183,11 @@ __all__ = [
     "ReportDeliveryCreate",
     "ReportDeliveryRead",
     "LabDashboardSummary",
+    "AmbulanceCreate",
+    "AmbulanceUpdate",
+    "AmbulanceRead",
+    "AmbulanceRequestCreate",
+    "AmbulanceStatusUpdate",
+    "AmbulanceSimulatedTracking",
+    "AmbulanceRequestRead",
 ]
