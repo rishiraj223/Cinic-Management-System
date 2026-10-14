@@ -11,10 +11,10 @@ import type { OrganizationWithRole } from './types/organization';
 import { ArrowLeft } from 'lucide-react';
 
 const MainApp: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, memberships, loading } = useAuth();
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [registerRole, setRegisterRole] = useState<'doctor' | 'patient'>('doctor');
   const [currentPage, setCurrentPage] = useState<'dashboard' | 'profile'>('dashboard');
-  const [portalMode, setPortalMode] = useState<'patient' | 'provider'>('patient');
 
   const [organizations, setOrganizations] = useState<OrganizationWithRole[]>([]);
   const [currentOrg, setCurrentOrg] = useState<OrganizationWithRole | null>(null);
@@ -28,7 +28,6 @@ const MainApp: React.FC = () => {
       if (orgs.length > 0 && !currentOrg) {
         setCurrentOrg(orgs[0]);
       } else if (currentOrg) {
-        // Keep current selected org up to date
         const refreshed = orgs.find((o) => o.id === currentOrg.id);
         if (refreshed) setCurrentOrg(refreshed);
       }
@@ -71,9 +70,17 @@ const MainApp: React.FC = () => {
 
   if (!user) {
     return authView === 'login' ? (
-      <LoginPage onNavigateRegister={() => setAuthView('register')} />
+      <LoginPage
+        onNavigateRegister={(role) => {
+          setRegisterRole(role || 'doctor');
+          setAuthView('register');
+        }}
+      />
     ) : (
-      <RegisterPage onNavigateLogin={() => setAuthView('login')} />
+      <RegisterPage
+        onNavigateLogin={() => setAuthView('login')}
+        defaultRole={registerRole}
+      />
     );
   }
 
@@ -103,39 +110,32 @@ const MainApp: React.FC = () => {
     );
   }
 
-  if (portalMode === 'patient') {
-    return (
-      <PatientPortalPage
-        onNavigateToStaffPortal={() => setPortalMode('provider')}
-      />
-    );
+  // Strict Role-Based View Separation:
+  // Healthcare providers & clinic/hospital staff access ProviderPortalPage.
+  // Individual patient users access PatientPortalPage.
+  // There is NO arbitrary manual switcher, preventing patients from accessing hospital controls.
+  const isDoctorOrStaff =
+    organizations.length > 0 ||
+    memberships.length > 0 ||
+    user?.user_metadata?.account_type === 'doctor' ||
+    user?.user_metadata?.role === 'doctor';
+
+  if (!isDoctorOrStaff) {
+    return <PatientPortalPage />;
   }
 
   return (
-    <div className="relative">
-      {/* Switcher back to patient portal */}
-      <div className="bg-slate-900 text-white text-xs px-4 py-1.5 flex items-center justify-between">
-        <span className="font-semibold text-teal-400">Healthcare Staff & Provider Mode</span>
-        <button
-          onClick={() => setPortalMode('patient')}
-          className="font-bold underline text-white hover:text-teal-300"
-        >
-          &larr; Switch to Patient Portal
-        </button>
-      </div>
-
-      <ProviderPortalPage
-        currentOrg={currentOrg}
-        organizations={organizations}
-        onSelectOrg={setCurrentOrg}
-        onOpenOnboarding={() => setIsOnboardingOpen(true)}
-        isOnboardingOpen={isOnboardingOpen}
-        onCloseOnboarding={() => setIsOnboardingOpen(false)}
-        onOrgCreated={handleOrgCreated}
-        onNavigateToAccount={() => setCurrentPage('profile')}
-        backendHealthy={backendHealth?.status === 'healthy'}
-      />
-    </div>
+    <ProviderPortalPage
+      currentOrg={currentOrg}
+      organizations={organizations}
+      onSelectOrg={setCurrentOrg}
+      onOpenOnboarding={() => setIsOnboardingOpen(true)}
+      isOnboardingOpen={isOnboardingOpen}
+      onCloseOnboarding={() => setIsOnboardingOpen(false)}
+      onOrgCreated={handleOrgCreated}
+      onNavigateToAccount={() => setCurrentPage('profile')}
+      backendHealthy={backendHealth?.status === 'healthy'}
+    />
   );
 };
 

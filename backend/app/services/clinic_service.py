@@ -243,10 +243,8 @@ class ClinicService:
             )
         )
         schedule = result.scalars().first()
-        if not schedule:
-            return []
 
-        # Check for exceptions on that date
+        # Check for exceptions on that date first
         exc_result = await db.execute(
             select(ScheduleException).where(
                 ScheduleException.doctor_profile_id == doctor_profile_id,
@@ -257,14 +255,20 @@ class ClinicService:
         if exception and exception.is_unavailable:
             return []
 
-        # Build all slots
         def _parse_time(t: str):
             h, m = t.split(":")
             return int(h), int(m)
 
-        sh, sm = _parse_time(schedule.start_time)
-        eh, em = _parse_time(schedule.end_time)
-        duration = schedule.slot_duration_minutes
+        if not schedule:
+            # Default standard working hours (09:00 - 17:00, 30 min slots)
+            # so patients can always book appointments even before doctor customizes weekly slots
+            sh, sm = 9, 0
+            eh, em = 17, 0
+            duration = 30
+        else:
+            sh, sm = _parse_time(schedule.start_time)
+            eh, em = _parse_time(schedule.end_time)
+            duration = schedule.slot_duration_minutes
 
         slots = []
         cur_h, cur_m = sh, sm

@@ -21,14 +21,13 @@ import {
   AlertCircle,
   ArrowRight,
   Truck,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { EmergencyAmbulanceView } from '../components/ambulance/EmergencyAmbulanceView';
 
-interface PatientPortalPageProps {
-  onNavigateToStaffPortal?: () => void;
-}
-
-export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({ onNavigateToStaffPortal }) => {
+export const PatientPortalPage: React.FC = () => {
+  const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'search' | 'appointments' | 'profile' | 'ambulance'
   >('dashboard');
@@ -51,8 +50,36 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({ onNavigate
   );
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+  const [customTime, setCustomTime] = useState('10:30');
   const [bookingReason, setBookingReason] = useState('');
   const [isBooking, setIsBooking] = useState(false);
+
+  const flexibleSlotPresets = [
+    { label: '09:30 AM', start: '09:30', end: '10:00' },
+    { label: '10:30 AM', start: '10:30', end: '11:00' },
+    { label: '11:30 AM', start: '11:30', end: '12:00' },
+    { label: '02:30 PM', start: '14:30', end: '15:00' },
+    { label: '03:30 PM', start: '15:30', end: '16:00' },
+    { label: '04:30 PM', start: '16:30', end: '17:00' },
+    { label: '05:30 PM', start: '17:30', end: '18:00' },
+  ];
+
+  const selectCustomTimeSlot = (timeString: string) => {
+    if (!timeString) return;
+    const parts = timeString.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1] || '0', 10);
+    const endMinutes = m + 30;
+    const endHour = h + Math.floor(endMinutes / 60);
+    const finalEndM = endMinutes % 60;
+    const endTimeStr = `${String(endHour).padStart(2, '0')}:${String(finalEndM).padStart(2, '0')}`;
+    setSelectedSlot({
+      date: bookingDate,
+      start_time: timeString,
+      end_time: endTimeStr,
+      is_available: true,
+    });
+  };
 
   // My Appointments
   const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
@@ -241,18 +268,25 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({ onNavigate
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {onNavigateToStaffPortal && (
-              <button
-                onClick={onNavigateToStaffPortal}
-                className="text-xs font-semibold text-slate-600 hover:text-teal-700 bg-slate-100 hover:bg-teal-50 px-3 py-1.5 rounded-lg transition"
-              >
-                Switch to Healthcare Provider Portal &rarr;
-              </button>
-            )}
-            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-xs">
-              {profile?.full_name?.charAt(0) || 'P'}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex flex-col text-right">
+              <span className="text-xs font-bold text-slate-900 leading-tight">
+                {profile?.full_name || user?.email?.split('@')[0] || 'Patient User'}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono truncate max-w-[150px]">
+                {user?.email}
+              </span>
             </div>
+            <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-bold flex items-center justify-center text-xs shadow-xs">
+              {profile?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase() || 'P'}
+            </div>
+            <button
+              onClick={() => signOut()}
+              title="Sign Out of Patient Account"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -683,34 +717,115 @@ export const PatientPortalPage: React.FC<PatientPortalPageProps> = ({ onNavigate
 
                 {/* Slot Selector */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Select Time Slot
-                  </label>
-                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
-                    {availableSlots.length === 0 ? (
-                      <div className="col-span-3 py-4 text-center text-xs text-slate-400">
-                        No available slots on this date.
-                      </div>
-                    ) : (
-                      availableSlots.map((slot, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          disabled={!slot.is_available}
-                          onClick={() => setSelectedSlot(slot)}
-                          className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition border ${
-                            !slot.is_available
-                              ? 'bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed line-through'
-                              : selectedSlot?.start_time === slot.start_time
-                              ? 'bg-teal-600 text-white border-teal-600 shadow'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-teal-500'
-                          }`}
-                        >
-                          {slot.start_time}
-                        </button>
-                      ))
-                    )}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700">
+                      Select Consultation Time Slot
+                    </label>
+                    <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded-full">
+                      30 min slot
+                    </span>
                   </div>
+
+                  {availableSlots.length > 0 && (
+                    <div className="mb-3">
+                      <span className="text-[11px] font-semibold text-slate-500 block mb-1">
+                        Doctor's Scheduled Slots:
+                      </span>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-32 overflow-y-auto p-1">
+                        {availableSlots.map((slot, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            disabled={!slot.is_available}
+                            onClick={() => setSelectedSlot(slot)}
+                            className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition border ${
+                              !slot.is_available
+                                ? 'bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed line-through'
+                                : selectedSlot?.start_time === slot.start_time
+                                ? 'bg-teal-600 text-white border-teal-600 shadow'
+                                : 'bg-white text-slate-700 border-slate-200 hover:border-teal-500'
+                            }`}
+                          >
+                            {slot.start_time}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Flexible & Walk-in Slot Selector (Guarantees user can always book) */}
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-teal-600" />
+                        {availableSlots.length === 0
+                          ? 'No routine slots scheduled? Request Flexible / Walk-in Time:'
+                          : 'Or Request Flexible / Walk-in Time:'}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        Guaranteed Slot
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {flexibleSlotPresets.map((preset) => {
+                        const isSelected = selectedSlot?.start_time === preset.start;
+                        return (
+                          <button
+                            key={preset.start}
+                            type="button"
+                            onClick={() =>
+                              setSelectedSlot({
+                                date: bookingDate,
+                                start_time: preset.start,
+                                end_time: preset.end,
+                                is_available: true,
+                              })
+                            }
+                            className={`py-1.5 px-1 text-center rounded-xl text-[11px] font-bold transition border ${
+                              isSelected
+                                ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                                : 'bg-white text-slate-700 border-slate-200 hover:border-teal-400'
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Time Selection Input */}
+                    <div className="pt-2 border-t border-slate-200 flex items-center gap-2">
+                      <span className="text-[11px] font-semibold text-slate-600 shrink-0">
+                        Custom Preferred Time:
+                      </span>
+                      <input
+                        type="time"
+                        value={customTime}
+                        onChange={(e) => setCustomTime(e.target.value)}
+                        className="px-2 py-1 border border-slate-300 rounded-lg text-xs font-mono bg-white text-slate-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => selectCustomTimeSlot(customTime)}
+                        className="px-3 py-1 bg-teal-50 hover:bg-teal-600 hover:text-white border border-teal-200 rounded-lg text-xs font-bold text-teal-800 transition"
+                      >
+                        Set Custom Slot
+                      </button>
+                    </div>
+                  </div>
+
+                  {selectedSlot && (
+                    <div className="mt-2.5 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800 animate-in fade-in">
+                      <span className="font-semibold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        Selected Slot: <strong>{selectedSlot.start_time} - {selectedSlot.end_time}</strong>
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-100">
+                        {bookingDate}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Reason for Visit */}

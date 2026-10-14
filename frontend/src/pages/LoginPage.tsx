@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Activity, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Activity, Lock, Mail, ArrowRight, Stethoscope, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Alert } from '../components/common/Alert';
 
 interface LoginPageProps {
-  onNavigateRegister: () => void;
+  onNavigateRegister: (defaultRole?: 'doctor' | 'patient') => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateRegister }) => {
@@ -31,6 +31,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateRegister }) => {
     setLoading(false);
   };
 
+  const setDemoCredentials = (role: 'patient' | 'doctor' | 'hospital' | 'lab') => {
+    if (role === 'patient') {
+      setEmail('rahul.sharma@example.com');
+      setPassword('Demo@1234');
+    } else if (role === 'doctor') {
+      setEmail('dr.sarah@apexhealth.com');
+      setPassword('Demo@1234');
+    } else if (role === 'hospital') {
+      setEmail('dr.vikram@citygeneral.com');
+      setPassword('Demo@1234');
+    } else if (role === 'lab') {
+      setEmail('dr.mehta@metropolis.com');
+      setPassword('Demo@1234');
+    }
+    setError(null);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -40,15 +57,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateRegister }) => {
           </div>
         </div>
         <h2 className="mt-4 text-center text-2xl font-bold tracking-tight text-slate-900">
-          Sign in to HealthCore SaaS
+          Sign In to HealthCore
         </h2>
         <p className="mt-1 text-center text-xs text-slate-500">
-          Integrated Portal for Clinics, Hospitals, and Diagnostic Centers
+          Unified Healthcare Platform for Patients, Doctors, and Clinics
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-white py-8 px-6 shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-100 sm:px-10">
+        <div className="bg-white py-8 px-6 shadow-xl shadow-slate-200/50 rounded-3xl border border-slate-100 sm:px-10">
           {!isConfigured && (
             <div className="mb-6">
               <Alert
@@ -64,6 +81,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateRegister }) => {
               <Alert type="error" message={error} onClose={() => setError(null)} />
             </div>
           )}
+
+          {/* Quick Demo Login Fillers for Presentation */}
+          <div className="mb-5 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+              ⚡ Quick Fill Demo Accounts
+            </span>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setDemoCredentials('patient')}
+                className="py-1.5 px-2.5 bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-400 rounded-xl font-bold text-slate-700 hover:text-teal-800 transition flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <User className="w-3.5 h-3.5 text-teal-600" /> Patient Account
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoCredentials('doctor')}
+                className="py-1.5 px-2.5 bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-400 rounded-xl font-bold text-slate-700 hover:text-teal-800 transition flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <Stethoscope className="w-3.5 h-3.5 text-teal-600" /> Doctor / Clinic
+              </button>
+            </div>
+          </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
@@ -107,24 +147,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateRegister }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-sm shadow-teal-200 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition disabled:opacity-50"
+              className="w-full mt-2 flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-md shadow-teal-200 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition disabled:opacity-50"
             >
               {loading ? 'Authenticating...' : 'Sign In'}
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          <div className="mt-6 text-center border-t border-slate-100 pt-4">
-            <p className="text-xs text-slate-500">
-              Don't have an account yet?{' '}
+          {/* Dedicated Registration Links for Both Roles */}
+          <div className="mt-6 border-t border-slate-100 pt-5">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center mb-3">
+              Don't have an account yet?
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
-                onClick={onNavigateRegister}
-                className="font-semibold text-teal-600 hover:text-teal-700 transition"
+                onClick={() => onNavigateRegister('doctor')}
+                className="w-full py-2 px-3 text-xs font-bold text-teal-800 bg-teal-50 hover:bg-teal-100 rounded-xl transition flex items-center justify-center gap-1.5 border border-teal-200/80"
               >
-                Register as Healthcare Provider
+                <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
+                Register as Doctor
               </button>
-            </p>
+              <button
+                type="button"
+                onClick={() => onNavigateRegister('patient')}
+                className="w-full py-2 px-3 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-200"
+              >
+                <User className="w-3.5 h-3.5 text-slate-500" />
+                Register as Patient
+              </button>
+            </div>
           </div>
         </div>
       </div>
