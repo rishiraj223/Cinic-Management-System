@@ -13,6 +13,13 @@ import { FacilitySettingsView } from '../components/provider/FacilitySettingsVie
 import { PhasePlaceholderView } from '../components/provider/PhasePlaceholderView';
 import { OnboardingModal } from '../components/provider/OnboardingModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { PatientManager } from '../components/clinic/PatientManager';
+import { AppointmentScheduler } from '../components/clinic/AppointmentScheduler';
+import { WalkInQueueView } from '../components/clinic/WalkInQueueView';
+import { PrescriptionManager } from '../components/clinic/PrescriptionManager';
+import { BillingManager } from '../components/clinic/BillingManager';
+import { FollowUpManager } from '../components/clinic/FollowUpManager';
+import { ClinicReportsView } from '../components/clinic/ClinicReportsView';
 import { api } from '../services/api';
 import type {
   OrganizationWithRole,
@@ -209,6 +216,27 @@ export const ProviderPortalPage: React.FC<ProviderPortalPageProps> = ({
             onRefresh={fetchFacilityData}
           />
         );
+
+      case 'patients':
+        return <PatientManager orgId={currentOrg.id} />;
+
+      case 'appointments':
+        return <AppointmentScheduler orgId={currentOrg.id} />;
+
+      case 'queue':
+        return <WalkInQueueView orgId={currentOrg.id} />;
+
+      case 'prescriptions':
+        return <PrescriptionManager orgId={currentOrg.id} />;
+
+      case 'billing':
+        return <BillingManager orgId={currentOrg.id} />;
+
+      case 'followups':
+        return <FollowUpManager orgId={currentOrg.id} />;
+
+      case 'reports':
+        return <ClinicReportsView orgId={currentOrg.id} />;
 
       default:
         return null;

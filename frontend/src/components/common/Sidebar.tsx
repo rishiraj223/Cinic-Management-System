@@ -22,6 +22,13 @@ export type ProviderActiveView =
   | 'service-categories'
   | 'staff'
   | 'settings'
+  | 'patients'
+  | 'appointments'
+  | 'queue'
+  | 'prescriptions'
+  | 'billing'
+  | 'followups'
+  | 'reports'
   | 'placeholder-appointments'
   | 'placeholder-patients'
   | 'placeholder-prescriptions'
@@ -206,71 +213,87 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {(orgType === 'clinic' || orgType === 'hospital') && (
               <>
                 <button
-                  onClick={() => handleNav('placeholder-appointments')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition ${
-                    activeView === 'placeholder-appointments'
-                      ? 'bg-slate-100 text-slate-900 font-medium'
-                      : 'text-slate-500 hover:bg-slate-50'
+                  onClick={() => handleNav('patients')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'patients'
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <span className="flex items-center gap-2.5">
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    Appointments & Queue
-                  </span>
-                  <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
-                    Phase 3
-                  </span>
+                  <ClipboardList className="w-4 h-4 text-emerald-600 shrink-0" />
+                  Patients (EMR)
                 </button>
 
                 <button
-                  onClick={() => handleNav('placeholder-patients')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition ${
-                    activeView === 'placeholder-patients'
-                      ? 'bg-slate-100 text-slate-900 font-medium'
-                      : 'text-slate-500 hover:bg-slate-50'
+                  onClick={() => handleNav('appointments')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'appointments'
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <span className="flex items-center gap-2.5">
-                    <ClipboardList className="w-4 h-4 text-slate-400" />
-                    Patient Records (EMR)
-                  </span>
-                  <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
-                    Phase 3
-                  </span>
+                  <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+                  Appointments
                 </button>
 
                 <button
-                  onClick={() => handleNav('placeholder-prescriptions')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition ${
-                    activeView === 'placeholder-prescriptions'
-                      ? 'bg-slate-100 text-slate-900 font-medium'
-                      : 'text-slate-500 hover:bg-slate-50'
+                  onClick={() => handleNav('queue')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'queue'
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <span className="flex items-center gap-2.5">
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    Prescriptions & PDF
-                  </span>
-                  <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
-                    Phase 3
-                  </span>
+                  <Users className="w-4 h-4 text-amber-600 shrink-0" />
+                  Walk-in Queue
                 </button>
 
                 <button
-                  onClick={() => handleNav('placeholder-billing')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition ${
-                    activeView === 'placeholder-billing'
-                      ? 'bg-slate-100 text-slate-900 font-medium'
-                      : 'text-slate-500 hover:bg-slate-50'
+                  onClick={() => handleNav('prescriptions')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'prescriptions'
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <span className="flex items-center gap-2.5">
-                    <CreditCard className="w-4 h-4 text-slate-400" />
-                    Billing & Receipts
-                  </span>
-                  <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
-                    Phase 3
-                  </span>
+                  <FileText className="w-4 h-4 text-purple-600 shrink-0" />
+                  Prescriptions (PDF)
+                </button>
+
+                <button
+                  onClick={() => handleNav('billing')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'billing'
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 text-emerald-600 shrink-0" />
+                  Billing & Receipts
+                </button>
+
+                <button
+                  onClick={() => handleNav('followups')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'followups'
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
+                  Follow-ups
+                </button>
+
+                <button
+                  onClick={() => handleNav('reports')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeView === 'reports'
+                      ? 'bg-emerald-50 text-emerald-900 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4 text-slate-600 shrink-0" />
+                  Clinic Reports
                 </button>
               </>
             )}
