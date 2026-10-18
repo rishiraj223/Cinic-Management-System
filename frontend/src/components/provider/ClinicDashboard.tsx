@@ -92,13 +92,18 @@ export const ClinicDashboard: React.FC<ClinicDashboardProps> = ({
           <p className="text-xs text-slate-500">Doctors & Receptionists</p>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200/80">
+        <div
+          onClick={() => onNavigate('queue')}
+          className="bg-white rounded-xl p-4 shadow-sm border border-slate-200/80 cursor-pointer hover:border-teal-400 hover:shadow-md transition"
+        >
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold text-slate-600">Today's Queue</span>
+            <span className="text-xs font-semibold text-slate-600">Today's Walk-in Queue</span>
             <Calendar className="w-4 h-4 text-teal-600" />
           </div>
-          <p className="text-base font-bold text-slate-900">0 Patients</p>
-          <p className="text-xs text-slate-400 font-mono">Live queue in Phase 3</p>
+          <p className="text-base font-bold text-slate-900">Manage Queue &rarr;</p>
+          <p className="text-xs text-teal-600 font-semibold flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" /> Live Front-Desk Queue
+          </p>
         </div>
       </div>
 
@@ -204,70 +209,72 @@ export const ClinicDashboard: React.FC<ClinicDashboardProps> = ({
         </div>
       </div>
 
-      {/* Quick Action Clinical Shortcuts (with clear Phase 3 label) */}
+      {/* Quick Action Clinical Shortcuts */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
+            <Sparkles className="w-4 h-4 text-teal-600" />
             Clinic Workflow Shortcuts
           </h3>
-          <span className="text-[11px] text-slate-400">Arriving in Phase 3</span>
+          <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
+            Active Clinical Suite
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <button
-            onClick={() => onNavigate('placeholder-appointments')}
-            className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-left transition space-y-2 group"
+            onClick={() => onNavigate('appointments')}
+            className="p-4 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/30 text-left transition space-y-2 group"
           >
             <Calendar className="w-5 h-5 text-teal-600 group-hover:scale-110 transition" />
             <div>
               <h4 className="text-xs font-bold text-slate-800">Appointment Calendar</h4>
               <p className="text-[10px] text-slate-500">Walk-in queue & booked slots</p>
             </div>
-            <span className="inline-block text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
-              Coming in Phase 3
+            <span className="inline-block text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold border border-emerald-100">
+              ● Live Scheduler
             </span>
           </button>
 
           <button
-            onClick={() => onNavigate('placeholder-patients')}
-            className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-left transition space-y-2 group"
+            onClick={() => onNavigate('patients')}
+            className="p-4 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/30 text-left transition space-y-2 group"
           >
             <Users className="w-5 h-5 text-blue-600 group-hover:scale-110 transition" />
             <div>
               <h4 className="text-xs font-bold text-slate-800">Patient Registry & EMR</h4>
               <p className="text-[10px] text-slate-500">Medical history & consultations</p>
             </div>
-            <span className="inline-block text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
-              Coming in Phase 3
+            <span className="inline-block text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold border border-emerald-100">
+              ● Patient Directory
             </span>
           </button>
 
           <button
-            onClick={() => onNavigate('placeholder-prescriptions')}
-            className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-left transition space-y-2 group"
+            onClick={() => onNavigate('prescriptions')}
+            className="p-4 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/30 text-left transition space-y-2 group"
           >
             <FileText className="w-5 h-5 text-indigo-600 group-hover:scale-110 transition" />
             <div>
               <h4 className="text-xs font-bold text-slate-800">Prescription Engine</h4>
               <p className="text-[10px] text-slate-500">Digital Rx & PDF printing</p>
             </div>
-            <span className="inline-block text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
-              Coming in Phase 3
+            <span className="inline-block text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold border border-emerald-100">
+              ● Digital Rx System
             </span>
           </button>
 
           <button
-            onClick={() => onNavigate('placeholder-billing')}
-            className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-left transition space-y-2 group"
+            onClick={() => onNavigate('billing')}
+            className="p-4 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/30 text-left transition space-y-2 group"
           >
             <CreditCard className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition" />
             <div>
               <h4 className="text-xs font-bold text-slate-800">Point of Sale & Billing</h4>
               <p className="text-[10px] text-slate-500">Invoices, receipts & payments</p>
             </div>
-            <span className="inline-block text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
-              Coming in Phase 3
+            <span className="inline-block text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold border border-emerald-100">
+              ● Invoicing & POS
             </span>
           </button>
         </div>

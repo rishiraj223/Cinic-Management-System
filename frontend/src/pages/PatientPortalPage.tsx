@@ -22,9 +22,21 @@ import {
   ArrowRight,
   Truck,
   LogOut,
+  Compass,
+  Navigation,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { EmergencyAmbulanceView } from '../components/ambulance/EmergencyAmbulanceView';
+import {
+  getBrowserLocation,
+  calculateDistanceKm,
+  estimateDriveTimeMinutes,
+  formatDistance,
+  getFacilityCoordinates,
+  DEFAULT_DEMO_LOCATION,
+  type GeoLocation,
+} from '../utils/geoUtils';
 
 export const PatientPortalPage: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -33,6 +45,11 @@ export const PatientPortalPage: React.FC = () => {
   >('dashboard');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Real GPS & Location Proximity State
+  const [userLocation, setUserLocation] = useState<GeoLocation>(DEFAULT_DEMO_LOCATION);
+  const [locating, setLocating] = useState(false);
+  const [sortByDistance, setSortByDistance] = useState(true);
 
   // Dashboard Data
   const [dashboard, setDashboard] = useState<PatientDashboardSummary | null>(null);
@@ -93,6 +110,46 @@ export const PatientPortalPage: React.FC = () => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 5000);
   };
+
+  // Real Geolocation Detection
+  const handleDetectLocation = async () => {
+    setLocating(true);
+    try {
+      const loc = await getBrowserLocation();
+      setUserLocation(loc);
+      showNotification(
+        'success',
+        loc.isRealGps
+          ? `Real GPS coordinates locked: ${loc.latitude.toFixed(4)}° N, ${loc.longitude.toFixed(4)}° E`
+          : 'Using benchmark demo location (Central Mumbai)'
+      );
+    } catch (err: any) {
+      showNotification('error', 'Could not detect device GPS.');
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  // Auto-detect GPS silently on load if browser already granted permission
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            label: `${pos.coords.latitude.toFixed(4)}° N, ${pos.coords.longitude.toFixed(4)}° E`,
+            isRealGps: true,
+          });
+        },
+        () => {
+          // Keep DEFAULT_DEMO_LOCATION silently
+        },
+        { timeout: 3500, maximumAge: 60000 }
+      );
+    }
+  }, []);
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -426,48 +483,69 @@ export const PatientPortalPage: React.FC = () => {
             </div>
 
             {/* Next Upcoming Appointment Highlight */}
-            {dashboard.next_appointment ? (
-              <div className="bg-white rounded-2xl border border-teal-200 p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse"></span>
-                    <h3 className="font-bold text-slate-900 text-sm">Next Scheduled Appointment</h3>
+            {dashboard.next_appointment ? (() => {
+              const nextCoords = getFacilityCoordinates(
+                (dashboard.next_appointment as any).organization_id || 'demo-clinic-01',
+                null,
+                dashboard.next_appointment.organization_address
+              );
+              const nextDistKm = calculateDistanceKm(
+                userLocation.latitude,
+                userLocation.longitude,
+                nextCoords.lat,
+                nextCoords.lon
+              );
+              const nextDriveMin = estimateDriveTimeMinutes(nextDistKm);
+
+              return (
+                <div className="bg-white rounded-2xl border border-teal-200/80 p-6 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse"></span>
+                      <h3 className="font-bold text-slate-900 text-sm">Next Scheduled Appointment</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold px-2.5 py-1 bg-teal-50 text-teal-800 rounded-full capitalize border border-teal-100">
+                        {dashboard.next_appointment.status}
+                      </span>
+                      <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full flex items-center gap-1.5 border border-slate-200">
+                        <Navigation className="w-3 h-3 text-teal-600" />
+                        {formatDistance(nextDistKm)} away (~{nextDriveMin} mins)
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-1 bg-teal-50 text-teal-800 rounded-full capitalize">
-                    {dashboard.next_appointment.status}
-                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-400 uppercase">Doctor</span>
+                      <p className="font-bold text-slate-900 mt-0.5">
+                        {dashboard.next_appointment.doctor_name}
+                      </p>
+                      <span className="text-xs text-teal-700 font-medium">
+                        {dashboard.next_appointment.doctor_specialty}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-400 uppercase">Healthcare Facility</span>
+                      <p className="font-bold text-slate-900 mt-0.5">
+                        {dashboard.next_appointment.organization_name}
+                      </p>
+                      <span className="text-xs text-slate-500">
+                        {dashboard.next_appointment.organization_address || 'Address on file'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-400 uppercase">Date & Time</span>
+                      <p className="font-bold text-slate-900 mt-0.5">
+                        {dashboard.next_appointment.appointment_date}
+                      </p>
+                      <span className="text-xs text-slate-600 font-mono">
+                        {dashboard.next_appointment.start_time} - {dashboard.next_appointment.end_time}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl">
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase">Doctor</span>
-                    <p className="font-bold text-slate-900 mt-0.5">
-                      {dashboard.next_appointment.doctor_name}
-                    </p>
-                    <span className="text-xs text-teal-700 font-medium">
-                      {dashboard.next_appointment.doctor_specialty}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase">Healthcare Facility</span>
-                    <p className="font-bold text-slate-900 mt-0.5">
-                      {dashboard.next_appointment.organization_name}
-                    </p>
-                    <span className="text-xs text-slate-500">
-                      {dashboard.next_appointment.organization_address || 'Address on file'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase">Date & Time</span>
-                    <p className="font-bold text-slate-900 mt-0.5">
-                      {dashboard.next_appointment.appointment_date}
-                    </p>
-                    <span className="text-xs text-slate-600 font-mono">
-                      {dashboard.next_appointment.start_time} - {dashboard.next_appointment.end_time}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
+              );
+            })() : (
               <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center">
                 <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                 <h4 className="text-sm font-bold text-slate-800">No appointments scheduled</h4>
@@ -486,199 +564,348 @@ export const PatientPortalPage: React.FC = () => {
         )}
 
         {/* ─── TAB 2: FIND CARE & BOOK SLOTS ─── */}
-        {!loading && activeTab === 'search' && !selectedProvider && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Discover Healthcare Facilities & Doctors</h2>
-              <p className="text-sm text-slate-500 mt-0.5">
-                Search accredited clinics, hospitals, and diagnostic testing centres.
-              </p>
-            </div>
+        {!loading && activeTab === 'search' && !selectedProvider && (() => {
+          // Calculate distance and drive time for each facility from the patient's current coordinates
+          const evaluatedProviders = providers.map((p) => {
+            const coords = getFacilityCoordinates(p.id, p.city, p.address);
+            const distanceKm = calculateDistanceKm(
+              userLocation.latitude,
+              userLocation.longitude,
+              coords.lat,
+              coords.lon
+            );
+            const driveMin = estimateDriveTimeMinutes(distanceKm);
+            return { ...p, coords, distanceKm, driveMin };
+          });
 
-            {/* Filter & Search Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Search by clinic name, doctor, specialty, department or test..."
-                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
+          if (sortByDistance) {
+            evaluatedProviders.sort((a, b) => a.distanceKm - b.distanceKm);
+          }
+
+          return (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Discover Healthcare Facilities & Doctors</h2>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Search accredited clinics, hospitals, and diagnostic testing centres with live proximity distance.
+                </p>
               </div>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="px-3 py-2.5 text-sm border border-slate-200 rounded-xl text-slate-700 bg-white"
-              >
-                <option value="">All Facility Types</option>
-                <option value="clinic">Clinic</option>
-                <option value="hospital">Hospital</option>
-                <option value="diagnostic_center">Diagnostic Centre</option>
-              </select>
-              <button
-                onClick={handleSearch}
-                className="px-6 py-2.5 bg-teal-600 text-white font-bold text-sm rounded-xl hover:bg-teal-700 transition shadow"
-              >
-                Search
-              </button>
-            </div>
 
-            {/* Provider Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {providers.length === 0 ? (
-                <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200">
-                  <Building className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-slate-700">No healthcare providers found</p>
-                  <span className="text-xs text-slate-400">Try modifying your search term or filter</span>
-                </div>
-              ) : (
-                providers.map((p) => (
+              {/* Real GPS & Proximity Hub Banner */}
+              <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 text-white p-5 rounded-2xl shadow-md border border-teal-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
                   <div
-                    key={p.id}
-                    className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
+                      userLocation.isRealGps
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-inner'
+                        : 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                    }`}
                   >
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                          {p.type.replace('_', ' ')}
-                        </span>
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="w-3 h-3" /> Verified
-                        </span>
-                      </div>
-                      <h3 className="text-base font-bold text-slate-900 mt-2">{p.name}</h3>
-                      <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        {p.city ? `${p.city}, ${p.state || ''}` : p.address || 'Address provided on file'}
-                      </p>
-
-                      <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-4 text-xs font-semibold text-slate-600">
-                        <div>
-                          <span className="text-teal-700 font-bold">{p.doctors_count}</span> Available Doctors
-                        </div>
-                        <div>
-                          <span className="text-slate-900 font-bold">{p.services_count}</span> Services & Tests
-                        </div>
-                      </div>
+                    <Compass className={`w-6 h-6 ${locating ? 'animate-spin text-teal-300' : ''}`} />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-bold tracking-wider uppercase text-teal-300">
+                        Proximity Care Radar
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                          userLocation.isRealGps
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            userLocation.isRealGps ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'
+                          }`}
+                        />
+                        {userLocation.isRealGps ? 'Live Real GPS Active' : 'Demo Benchmark Location'}
+                      </span>
                     </div>
-
-                    <button
-                      onClick={() => handleViewProvider(p.id)}
-                      className="mt-5 w-full py-2 bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
-                    >
-                      View Facility & Book Slots <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <p className="text-sm font-bold text-white mt-0.5 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-teal-400 shrink-0" />
+                      {userLocation.label ||
+                        `${userLocation.latitude.toFixed(4)}° N, ${userLocation.longitude.toFixed(4)}° E`}
+                    </p>
+                    <span className="text-[11px] text-slate-300">
+                      Doctors and facilities are ranked by physical road distance and average transit times.
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ─── PROVIDER DETAILS & DOCTORS ─── */}
-        {!loading && activeTab === 'search' && selectedProvider && (
-          <div className="space-y-6">
-            <button
-              onClick={() => setSelectedProvider(null)}
-              className="text-xs font-bold text-teal-700 hover:text-teal-900 flex items-center gap-1"
-            >
-              &larr; Back to Provider Search
-            </button>
-
-            {/* Provider Header */}
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-50 text-teal-800">
-                    {selectedProvider.type.replace('_', ' ')}
-                  </span>
-                  <h2 className="text-2xl font-bold text-slate-900 mt-1">{selectedProvider.name}</h2>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    {selectedProvider.address || 'Address provided on confirmation'} &bull;{' '}
-                    {selectedProvider.city || ''}
-                  </p>
                 </div>
-                {selectedProvider.phone && (
-                  <div className="text-xs font-semibold text-slate-600 flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    {selectedProvider.phone}
-                  </div>
-                )}
+
+                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleDetectLocation}
+                    disabled={locating}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2"
+                  >
+                    <Navigation className={`w-4 h-4 ${locating ? 'animate-spin' : ''}`} />
+                    {locating ? 'Detecting GPS...' : '📍 Detect Real Location'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSortByDistance(!sortByDistance)}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition ${
+                      sortByDistance
+                        ? 'bg-teal-900/60 text-teal-200 border-teal-500/50'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                  >
+                    {sortByDistance ? '✓ Nearest First' : 'Sort: Default'}
+                  </button>
+                </div>
               </div>
 
-              {/* Departments & Services */}
-              <div className="mt-6 pt-6 border-t border-slate-100 flex flex-wrap gap-2">
-                {selectedProvider.departments.map((d: string, i: number) => (
-                  <span
-                    key={i}
-                    className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700"
-                  >
-                    Dept: {d}
-                  </span>
-                ))}
-                {selectedProvider.services.map((s: string, i: number) => (
-                  <span
-                    key={i}
-                    className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800"
-                  >
-                    Service: {s}
-                  </span>
-                ))}
+              {/* Filter & Search Bar */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="Search by clinic name, doctor, specialty, department or test..."
+                    className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="px-3 py-2.5 text-sm border border-slate-200 rounded-xl text-slate-700 bg-white"
+                >
+                  <option value="">All Facility Types</option>
+                  <option value="clinic">Clinic</option>
+                  <option value="hospital">Hospital</option>
+                  <option value="diagnostic_center">Diagnostic Centre</option>
+                </select>
+                <button
+                  onClick={handleSearch}
+                  className="px-6 py-2.5 bg-teal-600 text-white font-bold text-sm rounded-xl hover:bg-teal-700 transition shadow"
+                >
+                  Search
+                </button>
               </div>
-            </div>
 
-            {/* Doctor Directory */}
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 mb-4">Available Doctors & Specialists</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedProvider.doctors.length === 0 ? (
-                  <div className="col-span-full py-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500">
-                    No doctor profiles listed for online appointment booking at this facility yet.
+              {/* Provider Grid with Distances */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {evaluatedProviders.length === 0 ? (
+                  <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <Building className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-slate-700">No healthcare providers found</p>
+                    <span className="text-xs text-slate-400">Try modifying your search term or filter</span>
                   </div>
                 ) : (
-                  selectedProvider.doctors.map((doc: any) => (
+                  evaluatedProviders.map((p) => (
                     <div
-                      key={doc.id}
-                      className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between"
+                      key={p.id}
+                      className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between group hover:border-teal-300"
                     >
                       <div>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-bold text-slate-900 text-base">{doc.doctor_name}</h4>
-                            <span className="text-xs font-bold text-teal-700 block mt-0.5">
-                              {doc.specialty}
-                            </span>
-                          </div>
-                          <span className="text-sm font-extrabold text-slate-900">
-                            ${parseFloat(doc.consultation_fee as any).toFixed(2)}
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            {p.type.replace('_', ' ')}
+                          </span>
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-slate-900 mt-2.5 group-hover:text-teal-700 transition">
+                          {p.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          {p.city ? `${p.city}, ${p.state || ''}` : p.address || 'Address provided on file'}
+                        </p>
+
+                        {/* Distance and Estimated Driving Time */}
+                        <div className="mt-3.5 p-2.5 rounded-xl bg-teal-50/70 border border-teal-100/80 flex items-center justify-between text-xs font-semibold text-teal-900">
+                          <span className="flex items-center gap-1.5 font-bold">
+                            <Navigation className="w-3.5 h-3.5 text-teal-600" />
+                            {formatDistance(p.distanceKm)} from you
+                          </span>
+                          <span className="flex items-center gap-1 text-slate-600 font-mono text-[11px]">
+                            <Clock className="w-3.5 h-3.5 text-teal-600" />
+                            ~{p.driveMin} min transit
                           </span>
                         </div>
 
-                        {doc.qualifications && (
-                          <p className="text-xs text-slate-500 mt-2 font-mono">
-                            Qualifications: {doc.qualifications} ({doc.experience_years} yrs exp)
-                          </p>
-                        )}
-                        {doc.bio && <p className="text-xs text-slate-600 mt-2 line-clamp-2">{doc.bio}</p>}
+                        <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-4 text-xs font-semibold text-slate-600">
+                          <div>
+                            <span className="text-teal-700 font-bold">{p.doctors_count}</span> Available Doctors
+                          </div>
+                          <div>
+                            <span className="text-slate-900 font-bold">{p.services_count}</span> Services & Tests
+                          </div>
+                        </div>
                       </div>
 
                       <button
-                        onClick={() => handleOpenBooking(doc)}
-                        className="mt-4 w-full py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition shadow"
+                        onClick={() => handleViewProvider(p.id)}
+                        className="mt-5 w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-1.5"
                       >
-                        Select Date & Available Slots &rarr;
+                        View Facility & Available Doctors <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))
                 )}
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
+
+        {/* ─── PROVIDER DETAILS & DOCTORS ─── */}
+        {!loading && activeTab === 'search' && selectedProvider && (() => {
+          const provCoords = getFacilityCoordinates(
+            selectedProvider.id,
+            selectedProvider.city,
+            selectedProvider.address
+          );
+          const provDistanceKm = calculateDistanceKm(
+            userLocation.latitude,
+            userLocation.longitude,
+            provCoords.lat,
+            provCoords.lon
+          );
+          const provDriveMin = estimateDriveTimeMinutes(provDistanceKm);
+
+          return (
+            <div className="space-y-6">
+              <button
+                onClick={() => setSelectedProvider(null)}
+                className="text-xs font-bold text-teal-700 hover:text-teal-900 flex items-center gap-1"
+              >
+                &larr; Back to Provider Search
+              </button>
+
+              {/* Provider Header with Distance & Travel Time */}
+              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-100">
+                      {selectedProvider.type.replace('_', ' ')}
+                    </span>
+                    <h2 className="text-2xl font-bold text-slate-900 mt-1">{selectedProvider.name}</h2>
+                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                      {selectedProvider.address || 'Address provided on confirmation'} &bull;{' '}
+                      {selectedProvider.city || ''}
+                    </p>
+
+                    {/* Facility Distance from User Current Location */}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-teal-50 border border-teal-200 text-teal-900 rounded-xl text-xs font-bold shadow-xs">
+                        <Navigation className="w-3.5 h-3.5 text-teal-600" />
+                        {formatDistance(provDistanceKm)} from your location (~{provDriveMin} min drive)
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        Source: {userLocation.isRealGps ? 'Your Real Device GPS' : 'Demo Hub (Central Mumbai)'}
+                      </span>
+                    </div>
+                  </div>
+                  {selectedProvider.phone && (
+                    <div className="text-xs font-semibold text-slate-600 flex items-center gap-2 bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200">
+                      <Phone className="w-4 h-4 text-teal-600" />
+                      {selectedProvider.phone}
+                    </div>
+                  )}
+                </div>
+
+                {/* Departments & Services */}
+                <div className="mt-6 pt-6 border-t border-slate-100 flex flex-wrap gap-2">
+                  {selectedProvider.departments.map((d: string, i: number) => (
+                    <span
+                      key={i}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700"
+                    >
+                      Dept: {d}
+                    </span>
+                  ))}
+                  {selectedProvider.services.map((s: string, i: number) => (
+                    <span
+                      key={i}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800"
+                    >
+                      Service: {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Doctor Directory */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Available Doctors & Specialists</h3>
+                    <p className="text-xs text-slate-500">
+                      Consultation distances computed from your current position.
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+                    {selectedProvider.doctors.length} Specialist{selectedProvider.doctors.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedProvider.doctors.length === 0 ? (
+                    <div className="col-span-full py-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500">
+                      No doctor profiles listed for online appointment booking at this facility yet.
+                    </div>
+                  ) : (
+                    selectedProvider.doctors.map((doc: any) => (
+                      <div
+                        key={doc.id}
+                        className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between hover:border-teal-300 transition"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-bold text-slate-900 text-base">{doc.doctor_name}</h4>
+                              <span className="text-xs font-bold text-teal-700 block mt-0.5">
+                                {doc.specialty}
+                              </span>
+                            </div>
+                            <span className="text-sm font-extrabold text-slate-900 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+                              ${parseFloat(doc.consultation_fee as any).toFixed(2)}
+                            </span>
+                          </div>
+
+                          {doc.qualifications && (
+                            <p className="text-xs text-slate-500 mt-2 font-mono">
+                              Qualifications: {doc.qualifications} ({doc.experience_years} yrs exp)
+                            </p>
+                          )}
+                          {doc.bio && <p className="text-xs text-slate-600 mt-2 line-clamp-2">{doc.bio}</p>}
+
+                          {/* Doctor Distance from Patient Location */}
+                          <div className="mt-3.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                            <span className="font-semibold text-teal-800 flex items-center gap-1.5">
+                              <Navigation className="w-3.5 h-3.5 text-teal-600" />
+                              {formatDistance(provDistanceKm)} from you
+                            </span>
+                            <span className="text-slate-500 font-mono text-[11px] flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-slate-400" />
+                              ~{provDriveMin} min transit
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleOpenBooking(doc)}
+                          className="mt-4 w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-1.5"
+                        >
+                          Book Consultation & Available Slots &rarr;
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ─── BOOKING MODAL / SLOT SELECTOR ─── */}
         {selectedDoctor && selectedProvider && (
